@@ -2,6 +2,8 @@
 
 Log file viewer of Abbott's Freestyle Libre - a CGM (Continuous Glucose Measurement) device.
 
+![Screenshot](https://igo.cc/wp/wp-content/uploads/2023/03/Screen-Shot-2023-03-11-at-10.26.53-PM-1536x897.png)
+
 ## Motivation
 
 After realizing that I am prediabetic (HbA1c 5.9), I needed to lower my average glucose level so I wanted to know what kind of activities and foods affect my glucose level by how much and how long.
