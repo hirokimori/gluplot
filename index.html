@@ -17,8 +17,15 @@
     <div class="row m-2">
         <div class="col-6">
             <input type="date" id="plotdate" value="2023-02-18">
-            <button type="button" class="btn btn-primary" onclick="changeDate(-1)">Previous Day</button>
-            <button type="button" class="btn btn-primary" onclick="changeDate(1)">Next Day</button>
+            <button type="button" class="btn btn-secondary" onclick="changeDate(-1)">Previous Day</button>
+            <button type="button" class="btn btn-secondary" onclick="changeDate(1)">Next Day</button>
+        </div>
+        <div class="col-4">
+        </div>
+        <div class="col-2">
+            <!-- allow user to select file -->
+            <input type="file" style="display:none;" id="file-input" value="Select .CSV file"/>
+            <input type="button" class="btn btn-primary" id="loadFileXml" value="Select CSV file" onclick="document.getElementById('file-input').click();" />
         </div>
     </div>    
 
@@ -36,6 +43,26 @@
         curDate.setDate(curDate.getDate() + offset);
         $('#plotdate').val(curDate.toISOString().slice(0,10));
         loadDailyData();
+    }
+
+    function preprocessData()
+    {
+        let latestDate = new Date("1970-01-01");
+        for (let line = 1; line < csvlines.length; line++) 
+        {
+            let vals = $.csv.toArrays(csvlines[line])[0];
+            if (vals == null) continue;
+            if (vals.length < 2) continue;
+            let datetime = vals[2];
+            let nums = datetime.split('-');
+            if (nums.length < 3) continue;
+            let date = new Date(datetime);
+            if (date > latestDate)
+                latestDate = date;
+            //console.log("date2: ", date);
+        }
+        
+        $('#plotdate').val(latestDate.toISOString().slice(0,10));
     }
 
     function loadDailyData()
@@ -63,34 +90,34 @@
                 }`;
         anno[0] = JSON.parse(box);
 
-        for (var line = 0; line < csvlines.length; line++) 
+        for (let line = 0; line < csvlines.length; line++) 
         {
-            var vals = $.csv.toArrays(csvlines[line])[0];
+            let vals = $.csv.toArrays(csvlines[line])[0];
             if (vals == null) continue;
             if (vals.length < 2) continue;
-            var datetime = vals[2];
+            let datetime = vals[2];
 
             if (datetime.startsWith(curDateString))
             {
-                var glu0 = vals[4] * 18;
-                var glu1 = vals[5] * 18;
-                var meal = vals[8];
-                var memo = vals[13];
+                let glu0 = vals[4] * 18;
+                let glu1 = vals[5] * 18;
+                let meal = vals[8];
+                let memo = vals[13];
 
-                var hour = parseInt(datetime.substring(11,13));
-                var min = parseInt(datetime.substring(14,16));
-                var total_min = hour * 60 + min;
+                let hour = parseInt(datetime.substring(11,13));
+                let min = parseInt(datetime.substring(14,16));
+                let total_min = hour * 60 + min;
 
                 if (glu0 > 0)
                 {                
-                    var data = [total_min, glu0];
+                    let data = [total_min, glu0];
                     xyValues.push(data);
                     //console.log("glu0: " + glu0 + ", total_min: " + total_min);
                     gluValues.push([total_min, glu0]);
                 }
                 if (glu1 > 0)
                 {                
-                    var data = [total_min, glu1];
+                    let data = [total_min, glu1];
                     xyValues2.push(data);
                     //console.log("glu1: " + glu1);
                 }
@@ -100,7 +127,7 @@
                 }
                 if (memo !== "")
                 {   
-                    var mylabel = new Object();
+                    let mylabel = new Object();
                     mylabel.type = "label";
                     mylabel.xValue = total_min;
                     mylabel.font = [];
@@ -115,7 +142,7 @@
                     //mylabel.callout["side"] = 10;
                     //mylabel.xAdjust = 50;
 
-                    var isMeal = false;
+                    let isMeal = false;
                     for(let i = 0; i < mealTime.length; i++)
                     {
                         if (mealTime[i] == total_min)
@@ -129,7 +156,7 @@
                     else
                         mylabel.backgroundColor = 'rgba(105,190,150,0.5)';
 
-                    var glu = 0;
+                        let glu = 0;
                     for (let i = 0; i < gluValues.length; i++)
                     {
                         glu = gluValues[i][1];
@@ -143,7 +170,7 @@
                         label_cnt += 1;
 
                     // i want to create a new label with a string name but only the labels with incremental int seem work. why??
-                    var newlabel = label_cnt;//"memo_label_" + total_min; //label_cnt;
+                    let newlabel = label_cnt;//"memo_label_" + total_min; //label_cnt;
                     //var newlabel = total_min; // this doesn't work.
                     //var newlabel = "mylbl_" + total_min; // this doesn't work - i want this
 
@@ -162,9 +189,10 @@
     function onload()
     {
         var curDate = new Date();
-        curDate = new Date("2023-02-15"); // TODO - for debug!!!!!
+        //curDate = new Date("2023-02-15"); // TODO - for debug!!!!!
         $('#plotdate').val(curDate.toISOString().slice(0,10));
 
+        // DEBUG: load CSV file for test.
         var csvdata = readDataFile("glucose_hm.csv");
         csvlines = csvdata.split('\n');
 
@@ -245,6 +273,34 @@
                     }
         chart = new Chart(ctx, cfg);
         loadDailyData();
+        
+        document.querySelector("#file-input").addEventListener('change', function() {
+                readFile();});
+    }
+
+    function readFile()
+    {
+        if(document.querySelector("#file-input").files.length == 0) {
+            alert('Error : No file selected');
+            return;
+        }
+
+        let file = document.querySelector("#file-input").files[0];
+        let reader = new FileReader();
+
+        // event fired when file reading finished
+        reader.addEventListener('load', function(e) {
+            let text = e.target.result;
+            csvlines = text.split('\n');
+            preprocessData();
+            loadDailyData();
+        });
+
+        reader.addEventListener('error', function() {
+            alert('Error : Failed to read file');
+        });
+
+        reader.readAsText(file);
     }
     
     function loadtext_async(file)
