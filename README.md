@@ -12,6 +12,6 @@ Luckily, the libreview.com has a data export function which provides a CSV file 
 
 ## Usage
 
-It's a web app - you can just upload your CSV file and done on [my web site](https://igo.cc/gluplot).
+It's a web app - you can just upload your CSV file on [my web site](https://igo.cc/gluplot).
 
 Or, if you have a web site, you can run your own. All you need is to deploy a couple of javascript files.

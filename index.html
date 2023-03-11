@@ -10,63 +10,73 @@
     <title>gluplot</title>
 </head>
 
-<body style='background-color: rgb(247, 244, 225);' onload="onload();">
-    <div>
+<body style='background-color: rgb(252, 251, 247);' onload="onload();">
+    <div class="container-fluid">
         <canvas id="myChart"></canvas>
     </div>  
     <div class="row m-2">
-        <div class="col-10 m-1" id="chinese_mode_buttons">
-            <button type="button" class="btn btn-primary" onclick="loadDailyData(-1)">Previous Day</button>
-            <button type="button" class="btn btn-primary" onclick="loadDailyData(1)">Next Day</button>
+        <div class="col-6">
+            <input type="date" id="plotdate" value="2023-02-18">
+            <button type="button" class="btn btn-primary" onclick="changeDate(-1)">Previous Day</button>
+            <button type="button" class="btn btn-primary" onclick="changeDate(1)">Next Day</button>
         </div>
-    </div>
-    <div class="row m-2">
-        <div class="col-4">
-            <div id="date">curdate</a>
-        </div>
-    </div>
+    </div>    
 
   <script>
-    var curDate = new Date("2023-02-18");
     var csvlines;
     var xyValues = [];
     var xyValues2 = [];
     var chart;
     var csv;
 
-    function loadDailyData(offset)
+    function changeDate(offset)
     {
+        var date = $('#plotdate').val();
+        var curDate = new Date(date);
         curDate.setDate(curDate.getDate() + offset);
-        $('#date').html(curDate.toISOString().slice(0,10)); 
+        $('#plotdate').val(curDate.toISOString().slice(0,10));
+        loadDailyData();
+    }
 
-        var count = 0;
+    function loadDailyData()
+    {
+        var date = $('#plotdate').val();
+        var curDate = new Date(date);
         var curDateString = curDate.toISOString().slice(0,10);
-        console.log(curDateString);
+        console.log("date:", curDateString);
 
         xyValues = [];
         xyValues2 = [];
         var gluValues = [];
         var mealTime = [];
-        var label_cnt = -1;
+        var label_cnt = 0;//-1;
         var anno = chart.options.plugins.annotation.annotations = [];
         var last_total_min = 0;
 
-        for (var line = 0; line < csvlines.length; line++) {
-            //console.log("line: " + lines[line]);
+        var box = `{"type": "box",
+                    "xMin": 0,
+                    "xMax": 1440,
+                    "yMin": 70,
+                    "yMax": 180,
+                    "borderWidth": 0,
+                    "backgroundColor": "rgba(0, 150, 222, 0.1)"
+                }`;
+        anno[0] = JSON.parse(box);
 
+        for (var line = 0; line < csvlines.length; line++) 
+        {
             var vals = $.csv.toArrays(csvlines[line])[0];
             if (vals == null) continue;
-            //var vals = csvlines[line].split(',');
             if (vals.length < 2) continue;
-
             var datetime = vals[2];
-            var glu0 = vals[4] * 18;
-            var glu1 = vals[5] * 18;
-            var meal = vals[8];
-            var memo = vals[13];
 
             if (datetime.startsWith(curDateString))
             {
+                var glu0 = vals[4] * 18;
+                var glu1 = vals[5] * 18;
+                var meal = vals[8];
+                var memo = vals[13];
+
                 var hour = parseInt(datetime.substring(11,13));
                 var min = parseInt(datetime.substring(14,16));
                 var total_min = hour * 60 + min;
@@ -96,6 +106,7 @@
                     mylabel.font = [];
                     mylabel.font["size"] = 18;
                     mylabel.position = "start";
+                    mylabel.padding = 0;
                     //mylabel.rotation = 30;
 
                     // callout doesn't work?
@@ -114,9 +125,9 @@
                         }
                     }
                     if (isMeal)
-                        mylabel.backgroundColor = 'rgba(225,150,150,0.3)';
+                        mylabel.backgroundColor = 'rgba(225,150,150,0.5)';
                     else
-                        mylabel.backgroundColor = 'rgba(105,190,150,0.3)';
+                        mylabel.backgroundColor = 'rgba(105,190,150,0.5)';
 
                     var glu = 0;
                     for (let i = 0; i < gluValues.length; i++)
@@ -138,7 +149,7 @@
 
                     anno[newlabel] = mylabel;
 
-                    console.log("min:" + total_min + ", newlabel:" + newlabel + ", txt:" + mylabel.content);
+                    //console.log("min:" + total_min + ", newlabel:" + newlabel + ", txt:" + mylabel.content);
                     last_total_min = total_min;
                 }
             }
@@ -150,11 +161,16 @@
 
     function onload()
     {
-        //csv = require('jquery-csv');
-        var csvdata = readDataFile("glucose_hm.csv");
-        //console.log(csvdata);
+        var curDate = new Date();
+        curDate = new Date("2023-02-15"); // TODO - for debug!!!!!
+        $('#plotdate').val(curDate.toISOString().slice(0,10));
 
+        var csvdata = readDataFile("glucose_hm.csv");
         csvlines = csvdata.split('\n');
+
+        $("#plotdate").on("input", function() {
+            loadDailyData(); 
+        });
 
         const ctx = document.getElementById('myChart');    
         const cfg = {
@@ -200,7 +216,7 @@
                                             yMin: 180,
                                             yMax: 240,
                                             borderWidth: 0,
-                                            backgroundColor: 'rgba(255, 99, 132, 0.25)'
+                                            backgroundColor: 'rgba(255, 99, 132, 0.55)'
                                         },
                                         box2: {
                                             // Indicates the type of annotation
@@ -228,8 +244,7 @@
                         }
                     }
         chart = new Chart(ctx, cfg);
-
-        loadDailyData(0);
+        loadDailyData();
     }
     
     function loadtext_async(file)
